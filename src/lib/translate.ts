@@ -1,5 +1,6 @@
 import type { WgerExercise } from '../types'
 import { EXERCISE_NAME_RU } from './exerciseNamesRu'
+import { EXERCISE_DESCRIPTION_RU } from './exerciseDescriptionsRu'
 
 const API = 'https://api.mymemory.translated.net/get'
 const MAX_CHUNK_CHARS = 480
@@ -99,14 +100,17 @@ export async function translateToRussian(text: string): Promise<string> {
  * effectively English-only, and machine translation mangles gym
  * terminology — e.g. turning "fingerboard" into something about
  * fingerprints). Descriptions are longer free-text prose without a
- * practical way to hand-translate all of them, so those still go through
- * the automatic translator.
+ * practical way to hand-translate all of them, so most still go through
+ * the automatic translator — except a growing set of common exercises
+ * whose source text is vague marketing copy rather than real technique,
+ * which get a hand-written description instead.
  */
 export async function translateExercise(exercise: WgerExercise): Promise<WgerExercise> {
   const manualName = EXERCISE_NAME_RU[exercise.id]
+  const manualDescription = EXERCISE_DESCRIPTION_RU[exercise.id]
   const [name, description] = await Promise.all([
     manualName ? Promise.resolve(manualName) : translateToRussian(exercise.name),
-    translateToRussian(exercise.description),
+    manualDescription ? Promise.resolve(manualDescription) : translateToRussian(exercise.description),
   ])
   return { ...exercise, name, description }
 }

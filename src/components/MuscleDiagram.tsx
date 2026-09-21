@@ -5,12 +5,26 @@ import { getMuscles } from '../lib/wgerApi'
 const FRONT_BASE = 'https://wger.de/static/images/muscles/muscular_system_front.svg'
 const BACK_BASE = 'https://wger.de/static/images/muscles/muscular_system_back.svg'
 
-const PRIMARY_TINT = 'invert(20%) sepia(94%) saturate(3963%) hue-rotate(353deg) brightness(93%) contrast(89%)'
-const SECONDARY_TINT = 'invert(68%) sepia(53%) saturate(1073%) hue-rotate(1deg) brightness(103%) contrast(101%)'
+const PRIMARY_COLOR = '#ef4444'
+const SECONDARY_COLOR = '#f59e0b'
 
 interface Props {
   primaryMuscleIds: number[]
   secondaryMuscleIds: number[]
+}
+
+function MuscleOverlay({ muscle, color }: { muscle: WgerMuscle; color: string }) {
+  const mask = `url("${muscle.image_url_main}") center / contain no-repeat`
+  return (
+    <div
+      className="absolute inset-0"
+      style={{
+        backgroundColor: color,
+        WebkitMask: mask,
+        mask,
+      }}
+    />
+  )
 }
 
 function BodyView({
@@ -21,15 +35,13 @@ function BodyView({
   layers: { muscle: WgerMuscle; isPrimary: boolean }[]
 }) {
   return (
-    <div className="relative inline-block">
-      <img src={base} alt="" className="block h-64 w-auto opacity-40" />
+    <div className="relative inline-block h-64 w-36">
+      <img src={base} alt="" className="block h-64 w-36 opacity-40" />
       {layers.map(({ muscle, isPrimary }) => (
-        <img
+        <MuscleOverlay
           key={muscle.id}
-          src={muscle.image_url_main}
-          alt=""
-          className="absolute inset-0 h-64 w-auto"
-          style={{ filter: isPrimary ? PRIMARY_TINT : SECONDARY_TINT }}
+          muscle={muscle}
+          color={isPrimary ? PRIMARY_COLOR : SECONDARY_COLOR}
         />
       ))}
     </div>
@@ -68,9 +80,21 @@ export function MuscleDiagram({ primaryMuscleIds, secondaryMuscleIds }: Props) {
   if (front.length === 0 && back.length === 0) return null
 
   return (
-    <div className="flex justify-center gap-4 py-2">
-      {front.length > 0 && <BodyView base={FRONT_BASE} layers={front} />}
-      {back.length > 0 && <BodyView base={BACK_BASE} layers={back} />}
+    <div className="flex flex-col items-center gap-2 py-2">
+      <div className="flex justify-center gap-4">
+        {front.length > 0 && <BodyView base={FRONT_BASE} layers={front} />}
+        {back.length > 0 && <BodyView base={BACK_BASE} layers={back} />}
+      </div>
+      <div className="flex gap-4 text-xs text-slate-400">
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: PRIMARY_COLOR }} />
+          Основная мышца
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: SECONDARY_COLOR }} />
+          Вспомогательная мышца
+        </span>
+      </div>
     </div>
   )
 }
