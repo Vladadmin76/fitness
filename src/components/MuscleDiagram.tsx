@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { WgerMuscle } from '../types'
 import { getMuscles } from '../lib/wgerApi'
+import { fetchColoredMuscleSvg } from '../lib/muscleSvg'
 
 const FRONT_BASE = 'https://wger.de/static/images/muscles/muscular_system_front.svg'
 const BACK_BASE = 'https://wger.de/static/images/muscles/muscular_system_back.svg'
@@ -14,17 +15,21 @@ interface Props {
 }
 
 function MuscleOverlay({ muscle, color }: { muscle: WgerMuscle; color: string }) {
-  const mask = `url("${muscle.image_url_main}") center / contain no-repeat`
-  return (
-    <div
-      className="absolute inset-0"
-      style={{
-        backgroundColor: color,
-        WebkitMask: mask,
-        mask,
-      }}
-    />
-  )
+  const [svg, setSvg] = useState<string | null>(null)
+
+  useEffect(() => {
+    let active = true
+    fetchColoredMuscleSvg(muscle.image_url_main, color).then((result) => {
+      if (active) setSvg(result)
+    })
+    return () => {
+      active = false
+    }
+  }, [muscle.image_url_main, color])
+
+  if (!svg) return null
+  // SVG markup fetched from wger's own static assets and recolored by us — not user input.
+  return <div className="absolute inset-0" dangerouslySetInnerHTML={{ __html: svg }} />
 }
 
 function BodyView({
@@ -38,11 +43,7 @@ function BodyView({
     <div className="relative inline-block h-64 w-36">
       <img src={base} alt="" className="block h-64 w-36 opacity-40" />
       {layers.map(({ muscle, isPrimary }) => (
-        <MuscleOverlay
-          key={muscle.id}
-          muscle={muscle}
-          color={isPrimary ? PRIMARY_COLOR : SECONDARY_COLOR}
-        />
+        <MuscleOverlay key={muscle.id} muscle={muscle} color={isPrimary ? PRIMARY_COLOR : SECONDARY_COLOR} />
       ))}
     </div>
   )
