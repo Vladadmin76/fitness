@@ -1,6 +1,7 @@
 import type { WgerExercise } from '../types'
 import { EXERCISE_NAME_RU } from './exerciseNamesRu'
 import { EXERCISE_DESCRIPTION_RU } from './exerciseDescriptionsRu'
+import { log } from './log'
 
 const API = 'https://api.mymemory.translated.net/get'
 const MAX_CHUNK_CHARS = 480
@@ -82,6 +83,7 @@ export async function translateToRussian(text: string): Promise<string> {
   const cached = localStorage.getItem(key)
   if (cached !== null) return cached
 
+  const startedAt = Date.now()
   try {
     const chunks = splitIntoChunks(trimmed)
     const translated: string[] = []
@@ -94,8 +96,10 @@ export async function translateToRussian(text: string): Promise<string> {
     } catch {
       // cache is a convenience — quota errors just mean re-translating next time
     }
+    log('info', `Перевод (${chunks.length} фрагм., ${Date.now() - startedAt} мс): "${trimmed.slice(0, 40)}…"`)
     return result
-  } catch {
+  } catch (err) {
+    log('warn', `Перевод не удался за ${Date.now() - startedAt} мс, оставляю английский: "${trimmed.slice(0, 40)}…" — ${err instanceof Error ? err.message : String(err)}`)
     return text
   }
 }

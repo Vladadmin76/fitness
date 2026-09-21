@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import type { Goal, Location, UserProfile, WgerEquipment, WgerMuscle } from '../types'
 import { getEquipment, getMuscles } from '../lib/wgerApi'
 import { getProfile, saveProfile } from '../lib/storage'
@@ -149,6 +149,10 @@ export function Settings() {
       >
         Сохранить
       </button>
+
+      <Link to="/debug" className="block text-center text-sm text-slate-500 underline">
+        Технический журнал
+      </Link>
     </div>
   )
 }

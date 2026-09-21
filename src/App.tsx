@@ -5,6 +5,7 @@ import { Settings } from './pages/Settings'
 import { WorkoutPreview } from './pages/WorkoutPreview'
 import { WorkoutSession } from './pages/WorkoutSession'
 import { History } from './pages/History'
+import { DebugLog } from './pages/DebugLog'
 
 export default function App() {
   return (
@@ -16,6 +17,7 @@ export default function App() {
         <Route path="/workout/new" element={<WorkoutPreview />} />
         <Route path="/workout/session" element={<WorkoutSession />} />
         <Route path="/history" element={<History />} />
+        <Route path="/debug" element={<DebugLog />} />
       </Routes>
     </div>
   )

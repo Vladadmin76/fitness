@@ -1,5 +1,6 @@
 import type { WgerCategory, WgerEquipment, WgerExercise, WgerMuscle } from '../types'
 import { findAnimationFrames } from './freeExerciseDb'
+import { log } from './log'
 
 const BASE = 'https://wger.de/api/v2'
 const LANGUAGE_EN = 2
@@ -20,9 +21,16 @@ interface WgerExerciseInfoResult {
 }
 
 async function getJson<T>(url: string): Promise<T> {
-  const res = await fetch(url)
-  if (!res.ok) throw new Error(`wger request failed: ${res.status} ${url}`)
-  return res.json() as Promise<T>
+  const startedAt = Date.now()
+  try {
+    const res = await fetch(url)
+    if (!res.ok) throw new Error(`wger request failed: ${res.status} ${url}`)
+    log('info', `wger запрос за ${Date.now() - startedAt} мс: ${url}`)
+    return (await res.json()) as T
+  } catch (err) {
+    log('error', `wger запрос упал за ${Date.now() - startedAt} мс: ${url} — ${err instanceof Error ? err.message : String(err)}`)
+    throw err
+  }
 }
 
 function cacheKey(name: string): string {

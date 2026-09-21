@@ -7,6 +7,7 @@ import {
   computeNextTarget,
 } from './progression'
 import { resolveExerciseText } from './translate'
+import { log } from './log'
 
 export const BODYWEIGHT_EQUIPMENT_ID = 7
 const CARDIO_CATEGORY_ID = 15
@@ -112,34 +113,48 @@ export async function generateWorkoutPlan(
   profile: UserProfile,
   sessions: WorkoutSession[],
 ): Promise<{ warmup: PlannedExercise[]; workout: PlannedExercise[] }> {
-  const allowed = await allowedEquipmentIds(profile)
-  const allowUntagged = profile.location === 'gym'
-  const homeWeights = profile.location === 'home' ? profile.homeDumbbellWeightsKg : null
+  const startedAt = Date.now()
+  log('info', `Генерация тренировки: цель=${profile.goal}, место=${profile.location}`)
+  try {
+    const allowed = await allowedEquipmentIds(profile)
+    const allowUntagged = profile.location === 'gym'
+    const homeWeights = profile.location === 'home' ? profile.homeDumbbellWeightsKg : null
 
-  if (profile.goal === 'muscle_group') {
-    const candidates = await getExercisesByMuscles(profile.targetMuscleIds)
-    const usable = candidates.filter((ex) => usableByEquipment(ex, allowed, allowUntagged))
-    const main = pickDiverse(usable, MAIN_MUSCLE_GROUP_EXERCISES)
-    const warmupPool = usable.filter((ex) => !main.includes(ex))
-    const warmup = pickDiverse(warmupPool.length ? warmupPool : usable, WARMUP_EXERCISES)
+    let result: { warmup: PlannedExercise[]; workout: PlannedExercise[] }
 
-    return {
-      warmup: await buildPlanned(warmup, 'warmup', WARMUP_REP_RANGE, 1, sessions, homeWeights),
-      workout: await buildPlanned(main, 'workout', MUSCLE_GROUP_REP_RANGE, 3, sessions, homeWeights),
+    if (profile.goal === 'muscle_group') {
+      const candidates = await getExercisesByMuscles(profile.targetMuscleIds)
+      const usable = candidates.filter((ex) => usableByEquipment(ex, allowed, allowUntagged))
+      log('info', `Кандидатов: ${candidates.length}, подходит по инвентарю: ${usable.length}`)
+      const main = pickDiverse(usable, MAIN_MUSCLE_GROUP_EXERCISES)
+      const warmupPool = usable.filter((ex) => !main.includes(ex))
+      const warmup = pickDiverse(warmupPool.length ? warmupPool : usable, WARMUP_EXERCISES)
+
+      result = {
+        warmup: await buildPlanned(warmup, 'warmup', WARMUP_REP_RANGE, 1, sessions, homeWeights),
+        workout: await buildPlanned(main, 'workout', MUSCLE_GROUP_REP_RANGE, 3, sessions, homeWeights),
+      }
+    } else {
+      // weight_loss: full-body circuit spread across categories, plus cardio for warm-up
+      const cardio = (await getExercisesByCategory(CARDIO_CATEGORY_ID)).filter((ex) =>
+        usableByEquipment(ex, allowed, allowUntagged),
+      )
+      const allExercises = await getExercisesByMuscles(profile.targetMuscleIds)
+      const usable = allExercises.filter((ex) => usableByEquipment(ex, allowed, allowUntagged))
+      log('info', `Кандидатов: ${allExercises.length}, подходит по инвентарю: ${usable.length}, кардио для разминки: ${cardio.length}`)
+      const main = pickDiverse(usable, WEIGHT_LOSS_EXERCISES)
+      const warmup = pickDiverse(cardio.length ? cardio : usable, WARMUP_EXERCISES)
+
+      result = {
+        warmup: await buildPlanned(warmup, 'warmup', WARMUP_REP_RANGE, 1, sessions, homeWeights),
+        workout: await buildPlanned(main, 'workout', WEIGHT_LOSS_REP_RANGE, 3, sessions, homeWeights),
+      }
     }
-  }
 
-  // weight_loss: full-body circuit spread across categories, plus cardio for warm-up
-  const cardio = (await getExercisesByCategory(CARDIO_CATEGORY_ID)).filter((ex) =>
-    usableByEquipment(ex, allowed, allowUntagged),
-  )
-  const allExercises = await getExercisesByMuscles(profile.targetMuscleIds)
-  const usable = allExercises.filter((ex) => usableByEquipment(ex, allowed, allowUntagged))
-  const main = pickDiverse(usable, WEIGHT_LOSS_EXERCISES)
-  const warmup = pickDiverse(cardio.length ? cardio : usable, WARMUP_EXERCISES)
-
-  return {
-    warmup: await buildPlanned(warmup, 'warmup', WARMUP_REP_RANGE, 1, sessions, homeWeights),
-    workout: await buildPlanned(main, 'workout', WEIGHT_LOSS_REP_RANGE, 3, sessions, homeWeights),
+    log('info', `Тренировка собрана за ${Date.now() - startedAt} мс (разминка: ${result.warmup.length}, основная: ${result.workout.length})`)
+    return result
+  } catch (err) {
+    log('error', `Ошибка генерации тренировки за ${Date.now() - startedAt} мс: ${err instanceof Error ? err.message : String(err)}`)
+    throw err
   }
 }
