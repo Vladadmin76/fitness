@@ -28,8 +28,10 @@ export async function fetchWorkoutTracks(limit = 20): Promise<JamendoTrack[]> {
     client_id: clientId,
     format: 'json',
     limit: String(limit),
-    tags: 'energetic+workout+dance+electronic',
-    include: 'musicinfo',
+    // Jamendo has almost no tracks tagged "workout"/"fitness"; a fast tempo
+    // ("speed=high") plus an upbeat genre is a much better proxy.
+    speed: 'high',
+    tags: 'electronic',
     audioformat: 'mp32',
     boost: 'popularity_month',
   })
