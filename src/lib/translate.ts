@@ -1,4 +1,5 @@
 import type { WgerExercise } from '../types'
+import { EXERCISE_NAME_RU } from './exerciseNamesRu'
 
 const API = 'https://api.mymemory.translated.net/get'
 const MAX_CHUNK_CHARS = 480
@@ -93,9 +94,18 @@ export async function translateToRussian(text: string): Promise<string> {
   }
 }
 
+/**
+ * Exercise names use a hand-translated dictionary (wger's database is
+ * effectively English-only, and machine translation mangles gym
+ * terminology — e.g. turning "fingerboard" into something about
+ * fingerprints). Descriptions are longer free-text prose without a
+ * practical way to hand-translate all of them, so those still go through
+ * the automatic translator.
+ */
 export async function translateExercise(exercise: WgerExercise): Promise<WgerExercise> {
+  const manualName = EXERCISE_NAME_RU[exercise.id]
   const [name, description] = await Promise.all([
-    translateToRussian(exercise.name),
+    manualName ? Promise.resolve(manualName) : translateToRussian(exercise.name),
     translateToRussian(exercise.description),
   ])
   return { ...exercise, name, description }
