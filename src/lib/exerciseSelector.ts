@@ -6,6 +6,7 @@ import {
   WEIGHT_LOSS_REP_RANGE,
   computeNextTarget,
 } from './progression'
+import { translateExercise } from './translate'
 
 export const BODYWEIGHT_EQUIPMENT_ID = 7
 const CARDIO_CATEGORY_ID = 15
@@ -65,23 +66,25 @@ async function buildPlanned(
   sessions: WorkoutSession[],
   homeAvailableWeightsKg: number[] | null,
 ): Promise<PlannedExercise[]> {
-  return exercises.map((exercise) => {
-    const target = computeNextTarget(
-      sessions,
-      exercise.id,
-      repRange,
-      targetSets,
-      homeAvailableWeightsKg,
-    )
-    return {
-      exercise,
-      kind,
-      repRangeLow: repRange.low,
-      repRangeHigh: repRange.high,
-      targetSets: target.sets,
-      suggestedWeight: target.weight,
-    }
-  })
+  return Promise.all(
+    exercises.map(async (exercise) => {
+      const target = computeNextTarget(
+        sessions,
+        exercise.id,
+        repRange,
+        targetSets,
+        homeAvailableWeightsKg,
+      )
+      return {
+        exercise: await translateExercise(exercise),
+        kind,
+        repRangeLow: repRange.low,
+        repRangeHigh: repRange.high,
+        targetSets: target.sets,
+        suggestedWeight: target.weight,
+      }
+    }),
+  )
 }
 
 export async function generateWorkoutPlan(

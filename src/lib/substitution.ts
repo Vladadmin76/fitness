@@ -1,5 +1,6 @@
 import type { WgerExercise } from '../types'
 import { getExercisesByMuscles } from './wgerApi'
+import { translateExercise } from './translate'
 
 /** Alternatives that hit the same primary muscle but rely on different equipment. */
 export async function findAlternatives(
@@ -8,11 +9,13 @@ export async function findAlternatives(
 ): Promise<WgerExercise[]> {
   const candidates = await getExercisesByMuscles(exercise.muscles.slice(0, 1))
 
-  return candidates
+  const top = candidates
     .filter((ex) => ex.id !== exercise.id)
     .filter((ex) => !unavailableEquipmentId || !ex.equipment.includes(unavailableEquipmentId))
     .sort((a, b) => overlapScore(b, exercise) - overlapScore(a, exercise))
     .slice(0, 5)
+
+  return Promise.all(top.map(translateExercise))
 }
 
 function overlapScore(candidate: WgerExercise, original: WgerExercise): number {

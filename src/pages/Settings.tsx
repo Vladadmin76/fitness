@@ -4,6 +4,7 @@ import type { Goal, Location, UserProfile, WgerEquipment, WgerMuscle } from '../
 import { getEquipment, getMuscles } from '../lib/wgerApi'
 import { getProfile, saveProfile } from '../lib/storage'
 import { BODYWEIGHT_EQUIPMENT_ID } from '../lib/exerciseSelector'
+import { equipmentNameRu, muscleNameRu } from '../lib/i18n'
 
 export function Settings() {
   const navigate = useNavigate()
@@ -88,7 +89,7 @@ export function Settings() {
                   checked={targetMuscleIds.includes(m.id)}
                   onChange={() => setTargetMuscleIds((prev) => toggle(prev, m.id))}
                 />
-                {m.name_en || m.name}
+                {muscleNameRu(m)}
               </label>
             ))}
           </div>
@@ -120,7 +121,7 @@ export function Settings() {
                   checked={homeEquipmentIds.includes(eq.id)}
                   onChange={() => setHomeEquipmentIds((prev) => toggle(prev, eq.id))}
                 />
-                {eq.name}
+                {equipmentNameRu(eq.name)}
               </label>
             ))}
           </div>
