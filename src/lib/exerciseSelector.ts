@@ -31,9 +31,18 @@ async function allowedEquipmentIds(profile: UserProfile): Promise<Set<number>> {
   return new Set(all.map((e) => e.id))
 }
 
-function usableByEquipment(exercise: WgerExercise, allowed: Set<number>): boolean {
-  if (exercise.equipment.length === 0) return true
-  return exercise.equipment.some((id) => allowed.has(id))
+/**
+ * wger's crowd-sourced equipment tags are inconsistent: many exercises that
+ * genuinely need a machine, a jump rope, or a pool are simply left
+ * untagged (empty equipment list), same as exercises that need nothing at
+ * all. Treating "untagged" as "usable anywhere" let gym-only equipment
+ * leak into home workouts. For home, only exercises with an explicit,
+ * fully-covered equipment list (or the bodyweight tag) are allowed; an gym
+ * is assumed to have everything, so untagged exercises stay allowed there.
+ */
+function usableByEquipment(exercise: WgerExercise, allowed: Set<number>, allowUntagged: boolean): boolean {
+  if (exercise.equipment.length === 0) return allowUntagged
+  return exercise.equipment.every((id) => allowed.has(id))
 }
 
 function pickDiverse(exercises: WgerExercise[], count: number): WgerExercise[] {
@@ -92,11 +101,12 @@ export async function generateWorkoutPlan(
   sessions: WorkoutSession[],
 ): Promise<{ warmup: PlannedExercise[]; workout: PlannedExercise[] }> {
   const allowed = await allowedEquipmentIds(profile)
+  const allowUntagged = profile.location === 'gym'
   const homeWeights = profile.location === 'home' ? profile.homeDumbbellWeightsKg : null
 
   if (profile.goal === 'muscle_group') {
     const candidates = await getExercisesByMuscles(profile.targetMuscleIds)
-    const usable = candidates.filter((ex) => usableByEquipment(ex, allowed))
+    const usable = candidates.filter((ex) => usableByEquipment(ex, allowed, allowUntagged))
     const main = pickDiverse(usable, MAIN_MUSCLE_GROUP_EXERCISES)
     const warmupPool = usable.filter((ex) => !main.includes(ex))
     const warmup = pickDiverse(warmupPool.length ? warmupPool : usable, WARMUP_EXERCISES)
@@ -109,10 +119,10 @@ export async function generateWorkoutPlan(
 
   // weight_loss: full-body circuit spread across categories, plus cardio for warm-up
   const cardio = (await getExercisesByCategory(CARDIO_CATEGORY_ID)).filter((ex) =>
-    usableByEquipment(ex, allowed),
+    usableByEquipment(ex, allowed, allowUntagged),
   )
   const allExercises = await getExercisesByMuscles(profile.targetMuscleIds)
-  const usable = allExercises.filter((ex) => usableByEquipment(ex, allowed))
+  const usable = allExercises.filter((ex) => usableByEquipment(ex, allowed, allowUntagged))
   const main = pickDiverse(usable, WEIGHT_LOSS_EXERCISES)
   const warmup = pickDiverse(cardio.length ? cardio : usable, WARMUP_EXERCISES)
 
