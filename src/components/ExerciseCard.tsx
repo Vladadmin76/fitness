@@ -4,6 +4,7 @@ import { MuscleDiagram } from './MuscleDiagram'
 import { ExerciseAnimation } from './ExerciseAnimation'
 import { RestTimer } from './RestTimer'
 import { findAlternatives } from '../lib/substitution'
+import { translateToRussian } from '../lib/translate'
 
 interface SetRow {
   weight: number
@@ -28,6 +29,8 @@ export function ExerciseCard({ planned, allowSubstitute, onComplete, onSubstitut
     })),
   )
   const [showDescription, setShowDescription] = useState(false)
+  const [description, setDescription] = useState(exercise.description)
+  const [translatingDescription, setTranslatingDescription] = useState(false)
   const [showSubstitutes, setShowSubstitutes] = useState(false)
   const [alternatives, setAlternatives] = useState<WgerExercise[] | null>(null)
   const [restTrigger, setRestTrigger] = useState(0)
@@ -52,6 +55,17 @@ export function ExerciseCard({ planned, allowSubstitute, onComplete, onSubstitut
       repRangeHigh: planned.repRangeHigh,
       sets: rows.map((r) => ({ weight: r.weight, reps: r.reps, completedAt: new Date().toISOString() })),
     })
+  }
+
+  async function toggleDescription() {
+    const opening = !showDescription
+    setShowDescription(opening)
+    if (opening && !exercise.descriptionIsRussian && description === exercise.description) {
+      setTranslatingDescription(true)
+      const translated = await translateToRussian(exercise.description)
+      setDescription(translated)
+      setTranslatingDescription(false)
+    }
   }
 
   async function openSubstitutes() {
@@ -85,14 +99,16 @@ export function ExerciseCard({ planned, allowSubstitute, onComplete, onSubstitut
       </div>
 
       <button
-        onClick={() => setShowDescription((v) => !v)}
+        onClick={toggleDescription}
         className="mb-3 rounded bg-slate-700 px-3 py-1 text-sm hover:bg-slate-600"
       >
         {showDescription ? 'Скрыть технику' : 'Как выполнять'}
       </button>
       {showDescription && (
         <p className="mb-3 whitespace-pre-line text-sm text-slate-300">
-          {exercise.description || 'Описание пока недоступно для этого упражнения.'}
+          {translatingDescription
+            ? 'Переводим…'
+            : description || 'Описание пока недоступно для этого упражнения.'}
         </p>
       )}
 

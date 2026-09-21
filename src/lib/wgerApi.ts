@@ -88,6 +88,7 @@ function toWgerExercise(r: WgerExerciseInfoResult): WgerExercise | null {
     equipment: r.equipment.map((e) => e.id),
     images: r.images.filter((i) => i.is_main).map((i) => i.image),
     animationFrames: null,
+    descriptionIsRussian: false,
   }
 }
 

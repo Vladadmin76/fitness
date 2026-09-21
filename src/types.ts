@@ -30,6 +30,7 @@ export interface WgerExercise {
   equipment: number[]
   images: string[]
   animationFrames: string[] | null
+  descriptionIsRussian: boolean
 }
 
 export interface UserProfile {

@@ -6,7 +6,7 @@ import {
   WEIGHT_LOSS_REP_RANGE,
   computeNextTarget,
 } from './progression'
-import { translateExercise } from './translate'
+import { resolveExerciseText } from './translate'
 
 export const BODYWEIGHT_EQUIPMENT_ID = 7
 const CARDIO_CATEGORY_ID = 15
@@ -97,7 +97,7 @@ async function buildPlanned(
         homeAvailableWeightsKg,
       )
       return {
-        exercise: await translateExercise(exercise),
+        exercise: resolveExerciseText(exercise),
         kind,
         repRangeLow: repRange.low,
         repRangeHigh: repRange.high,

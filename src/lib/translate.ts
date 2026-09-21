@@ -101,21 +101,23 @@ export async function translateToRussian(text: string): Promise<string> {
 }
 
 /**
- * Exercise names use a hand-translated dictionary (wger's database is
- * effectively English-only, and machine translation mangles gym
- * terminology — e.g. turning "fingerboard" into something about
- * fingerprints). Descriptions are longer free-text prose without a
- * practical way to hand-translate all of them, so most still go through
- * the automatic translator — except a growing set of common exercises
- * whose source text is vague marketing copy rather than real technique,
- * which get a hand-written description instead.
+ * Exercise names use a hand-translated dictionary covering all of wger's
+ * exercises (machine translation mangles gym terminology — e.g. turning
+ * "fingerboard" into something about fingerprints), so this is instant and
+ * needs no network call. Descriptions are longer free-text prose without a
+ * practical way to hand-translate all of them: a growing set of common
+ * exercises get a hand-written description, but the rest keep their raw
+ * English here and are translated lazily (see `translateToRussian`) only
+ * when the player actually opens the technique text — translating all of
+ * them upfront made workout generation itself wait on a slow, often
+ * rate-limited third-party API.
  */
-export async function translateExercise(exercise: WgerExercise): Promise<WgerExercise> {
-  const manualName = EXERCISE_NAME_RU[exercise.id]
+export function resolveExerciseText(exercise: WgerExercise): WgerExercise {
   const manualDescription = EXERCISE_DESCRIPTION_RU[exercise.id]
-  const [name, description] = await Promise.all([
-    manualName ? Promise.resolve(manualName) : translateToRussian(exercise.name),
-    manualDescription ? Promise.resolve(manualDescription) : translateToRussian(exercise.description),
-  ])
-  return { ...exercise, name, description }
+  return {
+    ...exercise,
+    name: EXERCISE_NAME_RU[exercise.id] ?? exercise.name,
+    description: manualDescription ?? exercise.description,
+    descriptionIsRussian: manualDescription !== undefined,
+  }
 }
