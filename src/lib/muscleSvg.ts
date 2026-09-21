@@ -1,4 +1,4 @@
-const CACHE_PREFIX = 'muscleSvg.'
+const CACHE_PREFIX = 'muscleSvg2.'
 const memoryCache = new Map<string, string>()
 
 /**
@@ -26,8 +26,23 @@ export async function fetchColoredMuscleSvg(url: string, color: string): Promise
     const res = await fetch(url)
     if (!res.ok) return null
     let svg = await res.text()
+
+    // These SVGs have no viewBox, only a fixed width/height. Forcing
+    // width/height to 100% without a viewBox does NOT scale the artwork to
+    // the new box the way an <img> would — the paths keep their original
+    // absolute coordinates, so they end up clipped/offset inside a
+    // differently-sized container. Adding a matching viewBox first makes
+    // 100%/100% actually stretch-to-fit like a normal image.
+    if (!/\sviewBox=/.test(svg)) {
+      const width = svg.match(/<svg\b[^>]*\swidth="([\d.]+)"/)?.[1]
+      const height = svg.match(/<svg\b[^>]*\sheight="([\d.]+)"/)?.[1]
+      if (width && height) {
+        svg = svg.replace(/<svg\b/, `<svg viewBox="0 0 ${width} ${height}"`)
+      }
+    }
+
     svg = svg
-      .replace(/<svg\b/, `<svg fill="${color}"`)
+      .replace(/<svg\b/, `<svg fill="${color}" preserveAspectRatio="none"`)
       .replace(/\swidth="[^"]*"/, ' width="100%"')
       .replace(/\sheight="[^"]*"/, ' height="100%"')
 
