@@ -4,7 +4,8 @@ import { EXERCISE_DESCRIPTION_RU } from './exerciseDescriptionsRu'
 
 const API = 'https://api.mymemory.translated.net/get'
 const MAX_CHUNK_CHARS = 480
-const MAX_CONCURRENT_REQUESTS = 2
+const MAX_CONCURRENT_REQUESTS = 1
+const RETRY_DELAYS_MS = [500, 1200, 2500]
 
 let activeRequests = 0
 const waitQueue: (() => void)[] = []
@@ -57,14 +58,18 @@ async function requestTranslation(text: string): Promise<string> {
 
 async function translateChunk(text: string): Promise<string> {
   return withConcurrencyLimit(async () => {
-    try {
-      return await requestTranslation(text)
-    } catch {
-      // one retry after a short backoff — anonymous free-tier requests
-      // occasionally get rate-limited under bursts
-      await new Promise((resolve) => setTimeout(resolve, 400))
-      return await requestTranslation(text)
+    // Anonymous free-tier requests get rate-limited fairly often under
+    // real traffic (shared quota across everyone hitting the API without a
+    // key), so retry with increasing backoff before giving up and falling
+    // back to the original English text.
+    for (const delay of RETRY_DELAYS_MS) {
+      try {
+        return await requestTranslation(text)
+      } catch {
+        await new Promise((resolve) => setTimeout(resolve, delay))
+      }
     }
+    return requestTranslation(text)
   })
 }
 
