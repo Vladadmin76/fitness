@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { RADIO_STATIONS } from '../lib/somaFm'
 import { fetchWorkoutTracks, isJamendoConfigured, type JamendoTrack } from '../lib/jamendoApi'
+import { getLikedTracks, toggleLikedTrack } from '../lib/storage'
 
 type Mode = 'radio' | 'playlist'
 
@@ -8,12 +9,17 @@ export function MusicPlayer() {
   const [mode, setMode] = useState<Mode>('radio')
   const [stationIdx, setStationIdx] = useState(0)
   const [tracks, setTracks] = useState<JamendoTrack[]>([])
+  const [likedTracks, setLikedTracks] = useState<JamendoTrack[]>(() => getLikedTracks())
+  const [onlyLiked, setOnlyLiked] = useState(false)
   const [trackIdx, setTrackIdx] = useState(0)
   const [playing, setPlaying] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const audioRef = useRef<HTMLAudioElement>(null)
 
   const jamendoReady = isJamendoConfigured()
+  const activeList = onlyLiked ? likedTracks : tracks
+  const currentTrack = activeList[trackIdx]
+  const currentIsLiked = currentTrack ? likedTracks.some((t) => t.id === currentTrack.id) : false
 
   useEffect(() => {
     if (mode === 'playlist' && jamendoReady && tracks.length === 0) {
@@ -23,8 +29,7 @@ export function MusicPlayer() {
     }
   }, [mode, jamendoReady, tracks.length])
 
-  const src =
-    mode === 'radio' ? RADIO_STATIONS[stationIdx].streamUrl : tracks[trackIdx]?.audioUrl
+  const src = mode === 'radio' ? RADIO_STATIONS[stationIdx].streamUrl : currentTrack?.audioUrl
 
   useEffect(() => {
     const audio = audioRef.current
@@ -46,15 +51,22 @@ export function MusicPlayer() {
   }
 
   function nextTrack() {
-    setTrackIdx((i) => (i + 1) % Math.max(tracks.length, 1))
+    setTrackIdx((i) => (i + 1) % Math.max(activeList.length, 1))
+  }
+
+  function toggleOnlyLiked() {
+    setOnlyLiked((v) => !v)
+    setTrackIdx(0)
+  }
+
+  function toggleLike() {
+    if (!currentTrack) return
+    setLikedTracks(toggleLikedTrack(currentTrack))
   }
 
   return (
     <div className="rounded-lg bg-slate-800 p-3 text-sm">
-      <audio
-        ref={audioRef}
-        onEnded={mode === 'playlist' ? nextTrack : undefined}
-      />
+      <audio ref={audioRef} onEnded={mode === 'playlist' ? nextTrack : undefined} />
       <div className="mb-2 flex gap-2">
         <button
           onClick={() => setMode('radio')}
@@ -94,10 +106,30 @@ export function MusicPlayer() {
         </p>
       )}
 
-      {mode === 'playlist' && jamendoReady && tracks[trackIdx] && (
-        <p className="mb-2 truncate">
-          {tracks[trackIdx].name} — {tracks[trackIdx].artist}
-        </p>
+      {mode === 'playlist' && jamendoReady && (
+        <label className="mb-2 flex items-center gap-2 text-xs text-slate-300">
+          <input type="checkbox" checked={onlyLiked} onChange={toggleOnlyLiked} />
+          Только избранное ({likedTracks.length})
+        </label>
+      )}
+
+      {mode === 'playlist' && jamendoReady && onlyLiked && activeList.length === 0 && (
+        <p className="mb-2 text-slate-400">Пока нет избранных треков — отметь сердечком то, что понравится.</p>
+      )}
+
+      {mode === 'playlist' && jamendoReady && currentTrack && (
+        <div className="mb-2 flex items-center gap-2">
+          <button
+            onClick={toggleLike}
+            aria-label="Добавить в избранное"
+            className={`text-lg leading-none ${currentIsLiked ? 'text-amber-300' : 'text-slate-500'}`}
+          >
+            ♥
+          </button>
+          <p className="truncate">
+            {currentTrack.name} — {currentTrack.artist}
+          </p>
+        </div>
       )}
 
       {error && <p className="mb-2 text-red-400">{error}</p>}
@@ -105,12 +137,12 @@ export function MusicPlayer() {
       <div className="flex gap-2">
         <button
           onClick={togglePlay}
-          disabled={mode === 'playlist' && !jamendoReady}
+          disabled={(mode === 'playlist' && !jamendoReady) || !currentTrack}
           className="rounded bg-slate-700 px-3 py-1 disabled:opacity-40"
         >
           {playing ? 'Пауза' : 'Играть'}
         </button>
-        {mode === 'playlist' && jamendoReady && (
+        {mode === 'playlist' && jamendoReady && activeList.length > 0 && (
           <button onClick={nextTrack} className="rounded bg-slate-700 px-3 py-1">
             Дальше
           </button>

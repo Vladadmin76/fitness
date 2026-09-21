@@ -1,9 +1,11 @@
 import type { PersonalRecord, UserProfile, WorkoutSession } from '../types'
+import type { JamendoTrack } from './jamendoApi'
 
 const KEYS = {
   profile: 'fitness.profile',
   sessions: 'fitness.sessions',
   prs: 'fitness.prs',
+  likedTracks: 'fitness.likedTracks',
 } as const
 
 function read<T>(key: string, fallback: T): T {
@@ -53,4 +55,21 @@ export function getPRs(): PersonalRecord[] {
 
 export function savePRs(prs: PersonalRecord[]): void {
   write(KEYS.prs, prs)
+}
+
+export function getLikedTracks(): JamendoTrack[] {
+  return read<JamendoTrack[]>(KEYS.likedTracks, [])
+}
+
+export function isTrackLiked(trackId: string): boolean {
+  return getLikedTracks().some((t) => t.id === trackId)
+}
+
+/** Adds the track if it wasn't liked yet, removes it otherwise. Returns the updated list. */
+export function toggleLikedTrack(track: JamendoTrack): JamendoTrack[] {
+  const tracks = getLikedTracks()
+  const idx = tracks.findIndex((t) => t.id === track.id)
+  const next = idx >= 0 ? tracks.filter((t) => t.id !== track.id) : [...tracks, track]
+  write(KEYS.likedTracks, next)
+  return next
 }
