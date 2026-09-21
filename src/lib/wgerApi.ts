@@ -1,4 +1,5 @@
 import type { WgerCategory, WgerEquipment, WgerExercise, WgerMuscle } from '../types'
+import { findAnimationFrames } from './freeExerciseDb'
 
 const BASE = 'https://wger.de/api/v2'
 const LANGUAGE_EN = 2
@@ -86,6 +87,7 @@ function toWgerExercise(r: WgerExerciseInfoResult): WgerExercise | null {
     musclesSecondary: r.muscles_secondary.map((m) => m.id),
     equipment: r.equipment.map((e) => e.id),
     images: r.images.filter((i) => i.is_main).map((i) => i.image),
+    animationFrames: null,
   }
 }
 
@@ -93,14 +95,26 @@ export interface ExerciseQuery {
   categoryId?: number
   muscleId?: number
   equipmentId?: number
-  limit?: number
+}
+
+const PAGE_SIZE = 250
+
+async function fetchAllPages(url: string): Promise<WgerExerciseInfoResult[]> {
+  const results: WgerExerciseInfoResult[] = []
+  let next: string | null = url
+  while (next) {
+    const data: { results: WgerExerciseInfoResult[]; next: string | null } = await getJson(next)
+    results.push(...data.results)
+    next = data.next
+  }
+  return results
 }
 
 export async function searchExercises(query: ExerciseQuery): Promise<WgerExercise[]> {
   const params = new URLSearchParams({
     format: 'json',
     language: String(LANGUAGE_EN),
-    limit: String(query.limit ?? 60),
+    limit: String(PAGE_SIZE),
   })
   if (query.categoryId) params.set('category', String(query.categoryId))
   if (query.muscleId) params.set('muscles', String(query.muscleId))
@@ -108,14 +122,19 @@ export async function searchExercises(query: ExerciseQuery): Promise<WgerExercis
 
   const key = `exercises.${params.toString()}`
   return cached(key, async () => {
-    const data = await getJson<{ results: WgerExerciseInfoResult[] }>(
-      `${BASE}/exerciseinfo/?${params.toString()}`,
-    )
+    // A single muscle group can have 100+ exercises — page through all of
+    // them instead of silently truncating to the first request's worth.
+    const results = await fetchAllPages(`${BASE}/exerciseinfo/?${params.toString()}`)
     const exercises: WgerExercise[] = []
-    for (const r of data.results) {
+    for (const r of results) {
       const ex = toWgerExercise(r)
       if (ex) exercises.push(ex)
     }
+    await Promise.all(
+      exercises.map(async (ex) => {
+        ex.animationFrames = await findAnimationFrames(ex.name)
+      }),
+    )
     return exercises
   })
 }

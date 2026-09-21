@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { ExerciseLog, PlannedExercise, WgerExercise } from '../types'
 import { MuscleDiagram } from './MuscleDiagram'
+import { ExerciseAnimation } from './ExerciseAnimation'
 import { RestTimer } from './RestTimer'
 import { findAlternatives } from '../lib/substitution'
 
@@ -76,9 +77,7 @@ export function ExerciseCard({ planned, allowSubstitute, onComplete, onSubstitut
       </div>
 
       <div className="mb-3 flex flex-wrap items-center gap-4">
-        {image && (
-          <img src={image} alt={exercise.name} className="h-40 w-40 rounded-lg object-cover" />
-        )}
+        <ExerciseAnimation frames={exercise.animationFrames} staticImage={image} alt={exercise.name} />
         <MuscleDiagram
           primaryMuscleIds={exercise.muscles}
           secondaryMuscleIds={exercise.musclesSecondary}

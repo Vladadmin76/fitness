@@ -29,6 +29,7 @@ export interface WgerExercise {
   musclesSecondary: number[]
   equipment: number[]
   images: string[]
+  animationFrames: string[] | null
 }
 
 export interface UserProfile {

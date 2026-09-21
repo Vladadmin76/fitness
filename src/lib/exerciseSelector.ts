@@ -14,6 +14,17 @@ const MAIN_MUSCLE_GROUP_EXERCISES = 5
 const WEIGHT_LOSS_EXERCISES = 6
 const WARMUP_EXERCISES = 3
 
+// wger has no equipment category for a TRX/suspension trainer, so these
+// exercises get mistagged as "none (bodyweight exercise)" even though they
+// need suspension straps most people don't own. Since there's no home
+// checkbox for it either, treat them as needing equipment nobody has.
+const TRX_EXERCISE_IDS = new Set([674, 927, 958, 959, 1246, 1259, 1260, 1261, 1262, 1266, 1269])
+const UNAVAILABLE_EQUIPMENT_ID = -1
+
+function correctedEquipment(exercise: WgerExercise): number[] {
+  return TRX_EXERCISE_IDS.has(exercise.id) ? [UNAVAILABLE_EQUIPMENT_ID] : exercise.equipment
+}
+
 function shuffle<T>(arr: T[]): T[] {
   const copy = [...arr]
   for (let i = copy.length - 1; i > 0; i--) {
@@ -41,8 +52,9 @@ async function allowedEquipmentIds(profile: UserProfile): Promise<Set<number>> {
  * is assumed to have everything, so untagged exercises stay allowed there.
  */
 function usableByEquipment(exercise: WgerExercise, allowed: Set<number>, allowUntagged: boolean): boolean {
-  if (exercise.equipment.length === 0) return allowUntagged
-  return exercise.equipment.every((id) => allowed.has(id))
+  const equipment = correctedEquipment(exercise)
+  if (equipment.length === 0) return allowUntagged
+  return equipment.every((id) => allowed.has(id))
 }
 
 function pickDiverse(exercises: WgerExercise[], count: number): WgerExercise[] {
