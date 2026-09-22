@@ -3,8 +3,15 @@ import { Link, useNavigate } from 'react-router-dom'
 import type { Goal, Location, UserProfile, WgerEquipment, WgerMuscle } from '../types'
 import { getEquipment, getMuscles } from '../lib/wgerApi'
 import { getProfile, saveProfile } from '../lib/storage'
-import { BODYWEIGHT_EQUIPMENT_ID } from '../lib/exerciseSelector'
+import { BIKE_EQUIPMENT_ID, BODYWEIGHT_EQUIPMENT_ID, TREADMILL_EQUIPMENT_ID } from '../lib/exerciseSelector'
 import { equipmentNameRu, muscleNameRu } from '../lib/i18n'
+
+// No wger equivalent for these — a home cardio machine, not traditional
+// strength equipment — so they're tracked as virtual entries alongside it.
+const VIRTUAL_HOME_EQUIPMENT = [
+  { id: TREADMILL_EQUIPMENT_ID, name: 'Беговая дорожка' },
+  { id: BIKE_EQUIPMENT_ID, name: 'Велотренажёр' },
+]
 
 export function Settings() {
   const navigate = useNavigate()
@@ -122,6 +129,16 @@ export function Settings() {
                   onChange={() => setHomeEquipmentIds((prev) => toggle(prev, eq.id))}
                 />
                 {equipmentNameRu(eq.name)}
+              </label>
+            ))}
+            {VIRTUAL_HOME_EQUIPMENT.map((eq) => (
+              <label key={eq.id} className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={homeEquipmentIds.includes(eq.id)}
+                  onChange={() => setHomeEquipmentIds((prev) => toggle(prev, eq.id))}
+                />
+                {eq.name}
               </label>
             ))}
           </div>

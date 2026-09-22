@@ -23,19 +23,29 @@ const TRX_EXERCISE_IDS = new Set([674, 927, 958, 959, 1246, 1259, 1260, 1261, 12
 
 // Same problem for a whole other category: wger's "equipment" only tracks
 // traditional strength gear, so outdoor running/walking, swimming, and
-// cardio machines (treadmill, stationary bike, rower, elliptical, stair
-// climber, ski erg) all get tagged "none (bodyweight exercise)" too — even
-// though none of them are actually doable in a room with no equipment.
+// cardio machines (rower, elliptical, stair climber, ski erg) all get
+// tagged "none (bodyweight exercise)" too — even though none of them are
+// actually doable in a room with no equipment.
 const NEEDS_SPACE_OR_MACHINE_IDS = new Set([
-  319, 527, 529, 530, 908, // running/jogging outdoors or on a treadmill
-  177, // outdoor/generic cycling — needs a bicycle, same problem as running
+  319, 529, 908, // running variants that stay outdoor-only (jogging, intervals, zone 2)
   961, 2480, 2481, 2482, 2483, 2484, 2485, 2486, 2487, // swimming
-  624, 962, 1093, 1376, 1449, 1526, 1548, 1615, 1618, 2549, // cardio machines
+  962, 1093, 1449, 1526, 1548, // cardio machines other than treadmill/bike
   1104, // "Walking" (as opposed to marching/jogging in place)
 ])
 const UNAVAILABLE_EQUIPMENT_ID = -1
 
+// Virtual equipment entries with no wger equivalent — a home checkbox for
+// "I have a treadmill/exercise bike" unlocks both the machine-specific
+// exercises and the generic Run/Cycling ones, since running or cycling on
+// the machine is the same movement as doing it outside.
+export const TREADMILL_EQUIPMENT_ID = -2
+export const BIKE_EQUIPMENT_ID = -3
+const TREADMILL_EXERCISE_IDS = new Set([527, 530, 1615, 2549])
+const BIKE_EXERCISE_IDS = new Set([177, 624, 1204, 1376, 1618])
+
 function correctedEquipment(exercise: WgerExercise): number[] {
+  if (TREADMILL_EXERCISE_IDS.has(exercise.id)) return [TREADMILL_EQUIPMENT_ID]
+  if (BIKE_EXERCISE_IDS.has(exercise.id)) return [BIKE_EQUIPMENT_ID]
   if (TRX_EXERCISE_IDS.has(exercise.id) || NEEDS_SPACE_OR_MACHINE_IDS.has(exercise.id)) {
     return [UNAVAILABLE_EQUIPMENT_ID]
   }
@@ -56,7 +66,9 @@ async function allowedEquipmentIds(profile: UserProfile): Promise<Set<number>> {
     return new Set([...profile.homeEquipmentIds, BODYWEIGHT_EQUIPMENT_ID])
   }
   const all = await getEquipment()
-  return new Set(all.map((e) => e.id))
+  // A gym is assumed to have a treadmill and an exercise bike too, same as
+  // it's assumed to have everything else (see allowUntagged above).
+  return new Set([...all.map((e) => e.id), TREADMILL_EQUIPMENT_ID, BIKE_EQUIPMENT_ID])
 }
 
 /**
