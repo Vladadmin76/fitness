@@ -5,6 +5,13 @@ import { log } from './log'
 const BASE = 'https://wger.de/api/v2'
 const LANGUAGE_EN = 2
 
+// free-exercise-db is matched to wger purely by normalized English name, so
+// a name that exists in both datasets but means a different movement gets
+// silently mismatched. wger's id 1377 "Torso Twist" is a seated Russian
+// twist; free-exercise-db's "Torso Twist" is a standing rotation — visibly
+// the wrong exercise, so it's better to show no animation at all here.
+const BAD_ANIMATION_MATCH_IDS = new Set([1377])
+
 interface WgerImage {
   image: string
   is_main: boolean
@@ -141,7 +148,7 @@ export async function searchExercises(query: ExerciseQuery): Promise<WgerExercis
     }
     await Promise.all(
       exercises.map(async (ex) => {
-        ex.animationFrames = await findAnimationFrames(ex.name)
+        ex.animationFrames = BAD_ANIMATION_MATCH_IDS.has(ex.id) ? null : await findAnimationFrames(ex.name)
       }),
     )
     const withAnimation = exercises.filter((ex) => ex.animationFrames !== null).length
