@@ -5,8 +5,8 @@ import { log } from './log'
 
 const API = 'https://api.mymemory.translated.net/get'
 const MAX_CHUNK_CHARS = 480
-const MAX_CONCURRENT_REQUESTS = 1
-const RETRY_DELAYS_MS = [500, 1200, 2500]
+const MAX_CONCURRENT_REQUESTS = 2
+const RETRY_DELAYS_MS = [300, 800]
 
 let activeRequests = 0
 const waitQueue: (() => void)[] = []

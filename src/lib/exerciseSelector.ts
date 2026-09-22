@@ -20,10 +20,25 @@ const WARMUP_EXERCISES = 3
 // need suspension straps most people don't own. Since there's no home
 // checkbox for it either, treat them as needing equipment nobody has.
 const TRX_EXERCISE_IDS = new Set([674, 927, 958, 959, 1246, 1259, 1260, 1261, 1262, 1266, 1269])
+
+// Same problem for a whole other category: wger's "equipment" only tracks
+// traditional strength gear, so outdoor running/walking, swimming, and
+// cardio machines (treadmill, stationary bike, rower, elliptical, stair
+// climber, ski erg) all get tagged "none (bodyweight exercise)" too — even
+// though none of them are actually doable in a room with no equipment.
+const NEEDS_SPACE_OR_MACHINE_IDS = new Set([
+  319, 527, 529, 530, 908, // running/jogging outdoors or on a treadmill
+  961, 2480, 2481, 2482, 2483, 2484, 2485, 2486, 2487, // swimming
+  624, 962, 1093, 1376, 1449, 1526, 1548, 1615, 1618, 2549, // cardio machines
+  1104, // "Walking" (as opposed to marching/jogging in place)
+])
 const UNAVAILABLE_EQUIPMENT_ID = -1
 
 function correctedEquipment(exercise: WgerExercise): number[] {
-  return TRX_EXERCISE_IDS.has(exercise.id) ? [UNAVAILABLE_EQUIPMENT_ID] : exercise.equipment
+  if (TRX_EXERCISE_IDS.has(exercise.id) || NEEDS_SPACE_OR_MACHINE_IDS.has(exercise.id)) {
+    return [UNAVAILABLE_EQUIPMENT_ID]
+  }
+  return exercise.equipment
 }
 
 function shuffle<T>(arr: T[]): T[] {
