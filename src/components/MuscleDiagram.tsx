@@ -4,8 +4,8 @@ import { getMuscles } from '../lib/wgerApi'
 import { fetchColoredMuscleSvg } from '../lib/muscleSvg'
 import { log } from '../lib/log'
 
-const FRONT_BASE = 'https://wger.de/static/images/muscles/muscular_system_front.svg'
-const BACK_BASE = 'https://wger.de/static/images/muscles/muscular_system_back.svg'
+const FRONT_BASE = `${import.meta.env.BASE_URL}muscles/body-front.svg`
+const BACK_BASE = `${import.meta.env.BASE_URL}muscles/body-back.svg`
 
 const PRIMARY_COLOR = '#ef4444'
 const SECONDARY_COLOR = '#f59e0b'
@@ -15,21 +15,34 @@ interface Props {
   secondaryMuscleIds: number[]
 }
 
-function MuscleOverlay({ muscle, color }: { muscle: WgerMuscle; color: string }) {
+// wger.de's per-muscle SVGs (muscle.image_url_main / image_url_secondary)
+// aren't served with CORS headers, so fetching them cross-origin from a
+// browser fails outright ("Load failed") — that's why highlighting never
+// worked on a real device despite looking fine in local testing that
+// bypassed the network layer. There are only 15 muscles, each with a main
+// and a secondary outline, so they're mirrored into public/muscles/ and
+// served from our own origin instead, where fetch() works normally.
+function localMuscleImagePath(muscleId: number, isPrimary: boolean): string {
+  return `${import.meta.env.BASE_URL}muscles/${muscleId}-${isPrimary ? 'main' : 'secondary'}.svg`
+}
+
+function MuscleOverlay({ muscle, isPrimary }: { muscle: WgerMuscle; isPrimary: boolean }) {
   const [svg, setSvg] = useState<string | null>(null)
+  const color = isPrimary ? PRIMARY_COLOR : SECONDARY_COLOR
+  const url = localMuscleImagePath(muscle.id, isPrimary)
 
   useEffect(() => {
     let active = true
-    fetchColoredMuscleSvg(muscle.image_url_main, color).then((result) => {
+    fetchColoredMuscleSvg(url, color).then((result) => {
       if (active) setSvg(result)
     })
     return () => {
       active = false
     }
-  }, [muscle.image_url_main, color])
+  }, [url, color])
 
   if (!svg) return null
-  // SVG markup fetched from wger's own static assets and recolored by us — not user input.
+  // SVG markup bundled with our own build and recolored by us — not user input.
   return <div className="absolute inset-0" dangerouslySetInnerHTML={{ __html: svg }} />
 }
 
@@ -44,7 +57,7 @@ function BodyView({
     <div className="relative inline-block h-64 w-36">
       <img src={base} alt="" className="block h-64 w-36 opacity-40" />
       {layers.map(({ muscle, isPrimary }) => (
-        <MuscleOverlay key={muscle.id} muscle={muscle} color={isPrimary ? PRIMARY_COLOR : SECONDARY_COLOR} />
+        <MuscleOverlay key={muscle.id} muscle={muscle} isPrimary={isPrimary} />
       ))}
     </div>
   )
