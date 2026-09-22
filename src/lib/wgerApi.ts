@@ -144,6 +144,8 @@ export async function searchExercises(query: ExerciseQuery): Promise<WgerExercis
         ex.animationFrames = await findAnimationFrames(ex.name)
       }),
     )
+    const withAnimation = exercises.filter((ex) => ex.animationFrames !== null).length
+    log('info', `Анимация: найдена для ${withAnimation} из ${exercises.length} упражнений (${params.toString()})`)
     return exercises
   })
 }

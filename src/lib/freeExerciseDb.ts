@@ -1,3 +1,5 @@
+import { log } from './log'
+
 const DATA_URL = 'https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/dist/exercises.json'
 const IMAGE_BASE = 'https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/'
 const CACHE_KEY = 'freeExerciseDb.index.v2'
@@ -53,6 +55,8 @@ async function buildIndex(): Promise<Map<string, string[]>> {
     }
   }
 
+  log('info', `Анимация: индекс free-exercise-db собран, ${index.size} ключей из ${data.length} упражнений`)
+
   try {
     localStorage.setItem(CACHE_KEY, JSON.stringify([...index.entries()]))
   } catch {
@@ -64,6 +68,7 @@ async function buildIndex(): Promise<Map<string, string[]>> {
 function getIndex(): Promise<Map<string, string[]>> {
   if (!indexPromise) indexPromise = buildIndex().catch((err) => {
     indexPromise = null
+    log('error', `Анимация: не удалось собрать индекс free-exercise-db: ${err instanceof Error ? err.message : String(err)}`)
     throw err
   })
   return indexPromise

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { WgerMuscle } from '../types'
 import { getMuscles } from '../lib/wgerApi'
 import { fetchColoredMuscleSvg } from '../lib/muscleSvg'
+import { log } from '../lib/log'
 
 const FRONT_BASE = 'https://wger.de/static/images/muscles/muscular_system_front.svg'
 const BACK_BASE = 'https://wger.de/static/images/muscles/muscular_system_back.svg'
@@ -71,6 +72,9 @@ export function MuscleDiagram({ primaryMuscleIds, secondaryMuscleIds }: Props) {
   ]
     .map(({ id, isPrimary }) => {
       const muscle = byId.get(id)
+      if (!muscle) {
+        log('warn', `Мышцы: ID мышцы ${id} из упражнения не найден в справочнике wger (${muscles.length} мышц загружено) — не будет подсвечен`)
+      }
       return muscle ? { muscle, isPrimary } : null
     })
     .filter((x): x is { muscle: WgerMuscle; isPrimary: boolean } => x !== null)
@@ -78,7 +82,12 @@ export function MuscleDiagram({ primaryMuscleIds, secondaryMuscleIds }: Props) {
   const front = layers.filter((l) => l.muscle.is_front)
   const back = layers.filter((l) => !l.muscle.is_front)
 
-  if (front.length === 0 && back.length === 0) return null
+  if (front.length === 0 && back.length === 0) {
+    if (primaryMuscleIds.length > 0 || secondaryMuscleIds.length > 0) {
+      log('warn', `Мышцы: для упражнения заданы ID (${[...primaryMuscleIds, ...secondaryMuscleIds].join(',')}), но ни одна мышца не отобразилась`)
+    }
+    return null
+  }
 
   return (
     <div className="flex flex-col items-center gap-2 py-2">

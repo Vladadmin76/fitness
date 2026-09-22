@@ -1,3 +1,5 @@
+import { log } from './log'
+
 const CACHE_PREFIX = 'muscleSvg2.'
 const memoryCache = new Map<string, string>()
 
@@ -24,7 +26,10 @@ export async function fetchColoredMuscleSvg(url: string, color: string): Promise
 
   try {
     const res = await fetch(url)
-    if (!res.ok) return null
+    if (!res.ok) {
+      log('error', `Мышцы: не удалось загрузить SVG ${url} (HTTP ${res.status})`)
+      return null
+    }
     let svg = await res.text()
 
     // These SVGs have no viewBox, only a fixed width/height. Forcing
@@ -38,6 +43,8 @@ export async function fetchColoredMuscleSvg(url: string, color: string): Promise
       const height = svg.match(/<svg\b[^>]*\sheight="([\d.]+)"/)?.[1]
       if (width && height) {
         svg = svg.replace(/<svg\b/, `<svg viewBox="0 0 ${width} ${height}"`)
+      } else {
+        log('warn', `Мышцы: у SVG ${url} нет ни viewBox, ни width/height — возможен неверный масштаб`)
       }
     }
 
@@ -53,7 +60,8 @@ export async function fetchColoredMuscleSvg(url: string, color: string): Promise
       // cache is a convenience — quota errors just mean refetching next time
     }
     return svg
-  } catch {
+  } catch (err) {
+    log('error', `Мышцы: ошибка при загрузке/обработке SVG ${url}: ${err instanceof Error ? err.message : String(err)}`)
     return null
   }
 }
