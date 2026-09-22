@@ -28,6 +28,7 @@ const TRX_EXERCISE_IDS = new Set([674, 927, 958, 959, 1246, 1259, 1260, 1261, 12
 // though none of them are actually doable in a room with no equipment.
 const NEEDS_SPACE_OR_MACHINE_IDS = new Set([
   319, 527, 529, 530, 908, // running/jogging outdoors or on a treadmill
+  177, // outdoor/generic cycling — needs a bicycle, same problem as running
   961, 2480, 2481, 2482, 2483, 2484, 2485, 2486, 2487, // swimming
   624, 962, 1093, 1376, 1449, 1526, 1548, 1615, 1618, 2549, // cardio machines
   1104, // "Walking" (as opposed to marching/jogging in place)
