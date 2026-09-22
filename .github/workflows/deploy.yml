@@ -24,6 +24,11 @@ jobs:
         env:
           VITE_JAMENDO_CLIENT_ID: ${{ secrets.VITE_JAMENDO_CLIENT_ID }}
 
+      # GitHub Pages has no concept of client-side routes; serving index.html
+      # again for any unmatched path lets React Router take over instead of
+      # showing GitHub's own 404 page.
+      - run: cp dist/index.html dist/404.html
+
       - uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
