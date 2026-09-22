@@ -54,7 +54,7 @@ export function WorkoutPreview() {
               Пересоздать
             </button>
             <button
-              onClick={() => navigate('/workout/session', { state: { plan } })}
+              onClick={() => navigate('/workout/session', { state: { plan }, replace: true })}
               className="flex-1 rounded-lg bg-indigo-600 py-3 font-medium hover:bg-indigo-500"
             >
               Начать
